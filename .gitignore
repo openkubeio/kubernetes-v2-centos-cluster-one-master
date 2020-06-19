@@ -1,5 +1,8 @@
 *.gem
 *.rbc
+**/*.log
+/.vagrant
+/.certs
 /.config
 /coverage/
 /InstalledFiles
