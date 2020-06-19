@@ -68,22 +68,19 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cl
 EOF
 
 echo "--- Checking available version of kubeadm"
-
 echo "installing version $(curl -s https://packages.cloud.google.com/apt/dists/kubernetes-xenial/main/binary-amd64/Packages | grep Version | grep 1.17 | awk '{print $2}')"
 
 echo "--- Installing Kubeadm and kubelet - version 1.17.0"
-
 #sudo yum install -y kubelet kubeadm kubectl
 sudo yum install -y kubeadm-1.17.3 kubelet-1.17.3  kubectl-1.17.3
 
 echo "--- enable kubelet service"
-
 sudo systemctl enable kubelet
 
 SCRIPT
 
 
-$check_config = <<-SCRIPT
+$preconfig = <<-SCRIPT
 
 echo "--- Checking versions and IPs"
 
@@ -109,12 +106,11 @@ echo "Environment=\"cgroup-driver=systemd\"" | sudo tee -a /usr/lib/systemd/syst
 echo "Environment=\"KUBELET_EXTRA_ARGS=--node-ip=$IPADDR_ENP0S8\"" | sudo tee -a /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
 
 echo "--- etc/hosts file to comment ip6"
-
 sudo sed -i '/ip6/s/^/#/' /etc/hosts
 
 echo "--- update firewall to allow connection if enabled"
 
-# You may require to rum below command to ufw to allow pos to pod inter communication
+# open ports if firewall is enabed to allow pos to pod inter communication
 #sudo firewall-cmd --permanent --add-port=6443/tcp
 #sudo firewall-cmd --permanent --add-port=2379-2380/tcp
 #sudo firewall-cmd --permanent --add-port=10250/tcp
@@ -156,7 +152,7 @@ sudo kubeadm token create --print-join-command > /data/$cluster/kubeadm_join_cmd
 SCRIPT
 
 
-$post_master = <<-SCRIPT
+$config_master = <<-SCRIPT
 
 echo "--- Executing script post_master" 
 
@@ -216,16 +212,16 @@ sudo tee -a /etc/haproxy/haproxy.cfg << EOF
 #### Config of Ingress Traffic to Kubernetes
 
 frontend localhost
-	bind *:443
+    bind *:443
     option tcplog
     mode tcp
     default_backend nodes
 backend nodes
-   mode tcp
-   balance roundrobin
-   option ssl-hello-chk
-   server node01 192.168.205.42:30001 check
-   server node02 192.168.205.43:30001 check
+    mode tcp
+    balance roundrobin
+    option ssl-hello-chk
+    server node01 192.168.205.42:30001 check
+    server node02 192.168.205.43:30001 check
 
 ####END of Config
 EOF
@@ -301,9 +297,9 @@ Vagrant.configure("2") do |config|
       srv.vm.hostname = servers["name"] # Set the hostname of the VM
 #     Add a second adapater with a specified IP
       srv.vm.network "private_network", ip: servers["ip"], :adapater=>2 
-#	  srv.vm.network :forwarded_port, guest: 22, host: servers["port"] # Add a port forwarding rule
+#     srv.vm.network :forwarded_port, guest: 22, host: servers["port"] # Add a port forwarding rule
       srv.vm.synced_folder ".", "/vagrant", type: "virtualbox"
-	  srv.vm.synced_folder "./../data/" , "/data", type: "virtualbox", owner: "root", group: "root"
+      srv.vm.synced_folder "./../data/" , "/data", type: "virtualbox", owner: "root", group: "root"
 	  
       srv.vm.provider "virtualbox" do |vb|
         vb.name = servers["name"] # Name of the VM in VirtualBox
@@ -312,42 +308,35 @@ Vagrant.configure("2") do |config|
 #       vb.customize ["modifyvm", :id, "--cpuexecutioncap", "10"] # Limit to VM to 10% of available 
       end
 	  
-	  srv.vm.provision "shell", inline: <<-SHELL
-	     
-		 echo "set env variable"
-		 echo cluster=cluster-centos7 | sudo tee -a /etc/environment 
-		 . /etc/environment 
+      srv.vm.provision "shell", inline: <<-SHELL
+	echo "set env variable"
+	echo cluster=cluster-centos7 | sudo tee -a /etc/environment 
+	. /etc/environment 
 		 
-		 echo "--- Updating yum packages"
-         sudo yum update -y 2>&1 | sudo tee -a /data/$cluster/init_master.log
+	echo "--- Updating yum packages"
+        sudo yum update -y 2>&1 | sudo tee -a /data/$cluster/init_master.log
 
-         echo "creating installation directory"
-		 [ -d /data/$cluster ] || sudo mkdir -p /data/$cluster/
+        echo "creating installation directory"
+	[ -d /data/$cluster ] || sudo mkdir -p /data/$cluster/
       SHELL
 	
-	  if servers["name"].include? "master" then
-		srv.vm.provision "shell", inline: $install_docker
+      if servers["name"].include? "master" then
+	srv.vm.provision "shell", inline: $install_docker
         srv.vm.provision "shell", inline: $install_kubeadm
-	    srv.vm.provision "shell", inline: $check_config
-		srv.vm.provision "shell", inline: $init_master
-		srv.vm.provision "shell", inline: $post_master		
-	  end
+	srv.vm.provision "shell", inline: $preconfig
+	srv.vm.provision "shell", inline: $init_master
+	srv.vm.provision "shell", inline: $config_master	
+        srv.vm.provision "shell", inline: $init_proxy
+	srv.vm.provision "shell", inline: $init_nfs
+      end
 	  
-	  if servers["name"].include? "worker" then
-	    srv.vm.provision "shell", inline: $install_docker
+      if servers["name"].include? "worker" then
+	srv.vm.provision "shell", inline: $install_docker
         srv.vm.provision "shell", inline: $install_kubeadm
-	    srv.vm.provision "shell", inline: $check_config
-		srv.vm.provision "shell", inline: $init_worker
-     end
+	srv.vm.provision "shell", inline: $preconfig
+	srv.vm.provision "shell", inline: $init_worker
+      end
 	 
-	 if servers["name"].include? "proxy" then
-	    srv.vm.provision "shell", inline: $install_docker
-        srv.vm.provision "shell", inline: $install_kubeadm
-	    srv.vm.provision "shell", inline: $check_config
-		srv.vm.provision "shell", inline: $init_worker
-	    srv.vm.provision "shell", inline: $init_proxy
-		srv.vm.provision "shell", inline: $init_nfs
-     end
-	end
-  end
+   end
+ end
 end
