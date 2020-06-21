@@ -71,8 +71,8 @@ echo "--- Checking available version of kubeadm"
 echo "installing version $(curl -s https://packages.cloud.google.com/apt/dists/kubernetes-xenial/main/binary-amd64/Packages | grep Version | grep 1.17 | awk '{print $2}')"
 
 echo "--- Installing Kubeadm and kubelet - version 1.17.0"
-#sudo yum install -y kubelet kubeadm kubectl
-sudo yum install -y kubeadm-1.17.3 kubelet-1.17.3  kubectl-1.17.3
+#sudo yum install -y kubeadm-1.17.3 kubelet-1.17.3  kubectl-1.17.3
+sudo yum install -y kubelet kubeadm kubectl
 
 echo "--- enable kubelet service"
 sudo systemctl enable kubelet
@@ -161,7 +161,7 @@ sudo mkdir /root/.kube/
 sudo cp /etc/kubernetes/admin.conf /root/.kube/config
 
 echo "--- Implement Calico for Kubernetes Networking"
-echo "--- Projet calico : https://docs.projectcalico.org/v3.11/getting-started/kubernetes/ "
+echo "--- Projet calico : https://docs.projectcalico.org/v3.11/getting-started/kubernetes/"
 sudo kubectl apply -f https://docs.projectcalico.org/v3.11/manifests/calico.yaml
 
 echo "--- Waiting for core dns pods to be up . . . "
@@ -199,8 +199,8 @@ echo "--- Executing script init_proxy"
 
 echo "--- Disable selinux "
 sudo setenforce 0
-sudo sed -i 's/^SELINUX=/#&/' /etc/selinux/config  
-sudo echo "SELINUX=disabled" >> /etc/selinux/config 
+sudo sed -i 's~^SELINUX=~#&~' /etc/selinux/config  
+echo "SELINUX=disabled" | sudo tee -a /etc/selinux/config 
 
 
 echo "--- Update apt and install haproxy"
@@ -242,9 +242,7 @@ $init_nfs = <<-SCRIPT
 
 echo "--- Executing script init_proxy"
 
-echo "--- Login onto nfs node and install nfs server"
-
-echo "--- Install nfs common package for Storage"
+echo "--- Install nfs server for Storage"
 sudo yum install nfs-utils -y 
 
 sudo chkconfig nfs on
@@ -309,32 +307,34 @@ Vagrant.configure("2") do |config|
       end
 	  
       srv.vm.provision "shell", inline: <<-SHELL
-	echo "set env variable"
-	echo cluster=cluster-centos7 | sudo tee -a /etc/environment 
-	. /etc/environment 
-		 
-	echo "--- Updating yum packages"
-        sudo yum update -y 2>&1 | sudo tee -a /data/$cluster/init_master.log
+	  echo "set env variable"
+	  echo cluster=v2-cluster-centos | sudo tee -a /etc/environment 
+	  . /etc/environment 
+	  	 
+	  echo "--- Updating yum packages"
+      sudo yum update -y 2>&1 | sudo tee -a /data/$cluster/yum-update.log
 
-        echo "creating installation directory"
-	[ -d /data/$cluster ] || sudo mkdir -p /data/$cluster/
+	  echo "creating installation directory"
+	  [ -d /data/$cluster ] || sudo mkdir -p /data/$cluster/
       SHELL
-	
+
+	  
+	  	  
       if servers["name"].include? "master" then
-	srv.vm.provision "shell", inline: $install_docker
+	    srv.vm.provision "shell", inline: $install_docker
         srv.vm.provision "shell", inline: $install_kubeadm
-	srv.vm.provision "shell", inline: $preconfig
-	srv.vm.provision "shell", inline: $init_master
-	srv.vm.provision "shell", inline: $config_master	
+        srv.vm.provision "shell", inline: $preconfig
+        srv.vm.provision "shell", inline: $init_master
+        srv.vm.provision "shell", inline: $config_master	
         srv.vm.provision "shell", inline: $init_proxy
-	srv.vm.provision "shell", inline: $init_nfs
+        srv.vm.provision "shell", inline: $init_nfs
       end
 	  
       if servers["name"].include? "worker" then
-	srv.vm.provision "shell", inline: $install_docker
+        srv.vm.provision "shell", inline: $install_docker
         srv.vm.provision "shell", inline: $install_kubeadm
-	srv.vm.provision "shell", inline: $preconfig
-	srv.vm.provision "shell", inline: $init_worker
+        srv.vm.provision "shell", inline: $preconfig
+        srv.vm.provision "shell", inline: $init_worker
       end
 	 
    end

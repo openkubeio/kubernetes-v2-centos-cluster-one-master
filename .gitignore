@@ -2,6 +2,7 @@
 *.rbc
 **/*.log
 /.vagrant
+/.vs
 /.certs
 /.config
 /coverage/
