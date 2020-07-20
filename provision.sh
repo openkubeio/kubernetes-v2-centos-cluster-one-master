@@ -4,7 +4,7 @@ echo "--- Checking vagrant plugin"
 
 
 echo "--- creating data directory " 
-[ -d ../data/ ] || [ mkdir -p ../data ]
+mkdir -p ../data
 
 echo "--- provisioning cluster"
 vagrant up
