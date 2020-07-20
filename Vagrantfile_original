@@ -307,14 +307,35 @@ Vagrant.configure("2") do |config|
 #       vb.customize ["modifyvm", :id, "--cpuexecutioncap", "10"] # Limit to VM to 10% of available 
       end
 	  
-      	  
+      srv.vm.provision "shell", inline: <<-SHELL
+	  echo "set env variable"
+	  echo cluster=v2-cluster-centos | sudo tee -a /etc/environment 
+	  . /etc/environment 
+	  	 
+	  echo "--- Updating yum packages"
+      sudo yum update -y 2>&1 | sudo tee -a /data/$cluster/yum-update.log
+
+	  echo "creating installation directory"
+	  [ -d /data/$cluster ] || sudo mkdir -p /data/$cluster/
+      SHELL
+
+	  
 	  	  
       if servers["name"].include? "master" then
-	    
+	    srv.vm.provision "shell", inline: $install_docker
+        srv.vm.provision "shell", inline: $install_kubeadm
+        srv.vm.provision "shell", inline: $preconfig
+        srv.vm.provision "shell", inline: $init_master
+        srv.vm.provision "shell", inline: $config_master	
+        srv.vm.provision "shell", inline: $init_proxy
+        srv.vm.provision "shell", inline: $init_nfs
       end
 	  
       if servers["name"].include? "worker" then
-       
+        srv.vm.provision "shell", inline: $install_docker
+        srv.vm.provision "shell", inline: $install_kubeadm
+        srv.vm.provision "shell", inline: $preconfig
+        srv.vm.provision "shell", inline: $init_worker
       end
 	 
    end
