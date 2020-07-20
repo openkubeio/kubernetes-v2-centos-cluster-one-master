@@ -14,9 +14,7 @@ $install_docker = <<-SCRIPT
 echo "--- Executing script install_docker" 
 
 echo "--- Installing docker util packages"
-sudo yum install -y yum-utils device-mapper-persistent-data lvm2 | tee -a /data/$cluster/init_master.log
-sudo yum install -y ca-certificates curl net-tools 2>&1 | tee -a /data/$cluster/init_master.log
-
+sudo yum install -y device-mapper-persistent-data lvm2 ca-certificates | tee -a /data/$cluster/init_master.log
 
 echo "--- Add Docker’s official GPG key"
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
@@ -307,14 +305,43 @@ Vagrant.configure("2") do |config|
 #       vb.customize ["modifyvm", :id, "--cpuexecutioncap", "10"] # Limit to VM to 10% of available 
       end
 	  
-      	  
-	  	  
+      srv.vm.provision "shell", inline: <<-SHELL
+	  
+	  echo "--- set env variable"
+	  echo cluster=cluster-openkube | sudo tee -a /etc/environment 
+	  . /etc/environment 
+	  	 
+	  echo "--- Updating yum packages"
+      sudo yum update -y 2>&1 | sudo tee -a /data/$cluster/yum-update.log
+	  
+	  echo "--- Intall utility packages"
+      sudo yum install -y yum-utils curl net-tools | sudo tee -a /data/$cluster/yum-update.log
+	  
+	  echo "--- creating installation directory"
+	  [ -d /data/$cluster ] || sudo mkdir -p /data/$cluster/
+	  
+	  echo "--- manage script "
+	  sudo sed -i 's#\r$##g' /vagrant/cleanup.sh
+	  sudo cp  /vagrant/cleanup.sh  /etc/cleanup.sh
+	  sudo chmod 755 /etc/cleanup.sh
+	  
+      SHELL
+	  
       if servers["name"].include? "master" then
-	    
+	    srv.vm.provision "shell", inline: $install_docker
+        srv.vm.provision "shell", inline: $install_kubeadm
+        srv.vm.provision "shell", inline: $preconfig
+        srv.vm.provision "shell", inline: $init_master
+        srv.vm.provision "shell", inline: $config_master	
+        srv.vm.provision "shell", inline: $init_proxy
+        srv.vm.provision "shell", inline: $init_nfs
       end
 	  
       if servers["name"].include? "worker" then
-       
+        srv.vm.provision "shell", inline: $install_docker
+        srv.vm.provision "shell", inline: $install_kubeadm
+        srv.vm.provision "shell", inline: $preconfig
+        srv.vm.provision "shell", inline: $init_worker
       end
 	 
    end

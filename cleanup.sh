@@ -2,6 +2,7 @@
 #sudo yum -y autoremove
 #sudo yum clean all
 sudo rm -rf /tmp/*
+sudo rm -rf /data/$cluster/*.log
 sudo rm -f /var/log/wtmp /var/log/btmp
 sudo dd if=/dev/zero of=/EMPTY bs=1M count=1024
 sudo rm -f /EMPTY
