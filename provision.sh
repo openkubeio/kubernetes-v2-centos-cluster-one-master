@@ -10,11 +10,7 @@ echo "--- provisioning cluster"
 vagrant up
 
 echo "--- copying config from cluster"
-cp ../data/v2-cluster-centos/config ~/.kube/
-
-echo "--- labeling the nodes"
-kubectl label node worker.qa.kube.io node-role.kubernetes.io/worker=worker 
-kubectl label node worker.qa.kube.io node-role.kubernetes.io/management=management  
+cp ../data/cluster-openkube/config ~/.kube/
 
 echo "--- validating  the nodes"
 kubectl get nodes

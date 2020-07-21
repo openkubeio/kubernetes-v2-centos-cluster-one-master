@@ -315,7 +315,7 @@ Vagrant.configure("2") do |config|
       sudo yum update -y 2>&1 | sudo tee -a /data/$cluster/yum-update.log
 	  
 	  echo "--- Intall utility packages"
-      sudo yum install -y yum-utils curl net-tools | sudo tee -a /data/$cluster/yum-update.log
+      sudo yum install -y yum-utils curl net-tools nfs-utils | sudo tee -a /data/$cluster/yum-update.log
 	  
 	  echo "--- creating installation directory"
 	  [ -d /data/$cluster ] || sudo mkdir -p /data/$cluster/
@@ -341,7 +341,7 @@ Vagrant.configure("2") do |config|
         srv.vm.provision "shell", inline: $install_docker
         srv.vm.provision "shell", inline: $install_kubeadm
         srv.vm.provision "shell", inline: $preconfig
-        srv.vm.provision "shell", inline: $init_worker
+#       srv.vm.provision "shell", inline: $init_worker
       end
 	 
    end
