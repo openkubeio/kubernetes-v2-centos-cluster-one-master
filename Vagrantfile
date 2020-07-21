@@ -311,14 +311,14 @@ Vagrant.configure("2") do |config|
 	  echo cluster=cluster-openkube | sudo tee -a /etc/environment 
 	  . /etc/environment 
 	  	 
+	  echo "--- creating installation directory /data/$cluster/"
+	  sudo mkdir -p /data/$cluster/
+	  
 	  echo "--- Updating yum packages"
       sudo yum update -y 2>&1 | sudo tee -a /data/$cluster/yum-update.log
 	  
 	  echo "--- Intall utility packages"
       sudo yum install -y yum-utils curl net-tools nfs-utils | sudo tee -a /data/$cluster/yum-update.log
-	  
-	  echo "--- creating installation directory"
-	  [ -d /data/$cluster ] || sudo mkdir -p /data/$cluster/
 	  
 	  echo "--- manage script "
 	  sudo sed -i 's#\r$##g' /vagrant/cleanup.sh

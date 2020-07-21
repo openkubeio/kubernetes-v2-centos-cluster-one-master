@@ -3,9 +3,9 @@
 
 vagrant up
 
-vagrant ssh -- -t master.qa.kube.io "sudo sh /etc/cleanup.sh"
+vagrant ssh master.qa.kube.io -- -t  "sudo sh /etc/cleanup.sh"
 
-vagrant ssh -- -t worker.qa.kube.io "sudo sh /etc/cleanup.sh"
+vagrant ssh worker.qa.kube.io -- -t  "sudo sh /etc/cleanup.sh"
 
 vagrant halt 
 
@@ -15,7 +15,7 @@ vagrant package --base master.qa.kube.io --output ../../../open-kubeio-mv17.3.bo
 
 vagrant package --base worker.qa.kube.io --output ../../../open-kubeio-wv17.3.box
 
-vagrant box add ../../../open-kubeio-mv.3.box --name open-kubeio-mv17.3
+vagrant box add ../../../open-kubeio-mv17.3.box --name open-kubeio-mv17.3
 vagrant box add ../../../open-kubeio-wv17.3.box --name open-kubeio-wv17.3
 
 vagrant box list
